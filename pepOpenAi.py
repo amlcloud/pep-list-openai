@@ -6,8 +6,10 @@ import re
 import nltk
 from nltk import ne_chunk, pos_tag, word_tokenize
 from nltk.tree import Tree
+from time import sleep
+import logging
 
-openai.api_key = "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"
+openai.api_key = "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"
 
 class PepOpenAi:
 
@@ -15,6 +17,7 @@ class PepOpenAi:
     def __init__(self):
         self.names = []
         self.data = "Name;Date of Birth;Country;Current Position\n"
+        self.logger = logging.getLogger('ftpuploader')
         return
 
     def getNames(self, url):
@@ -49,7 +52,8 @@ class PepOpenAi:
             # Now get the names you want to add and return them
             return [item[2:] for item in namesQuery.split("\n")[1:]]
         
-        except:
+        except Exception as e:
+            self.logger.error("Failed to make list "+str(e))
             return []
 
     # Just uses getNames() to return the longest possible list
@@ -65,17 +69,14 @@ class PepOpenAi:
                 # print("Item: "+item)
                 if not item in self.names:
                     self.names.append(item)
-            """
-            if len(currResponse) > maxLen:
-                maxLen = len(currResponse)
-                returnText = currResponse
-            """
+            print("Current Iteration: "+str(i))
         # Don't know if I need this yet
         # RIGHT NOW: Likely we only start adding names
         # to the class when we are getting longest list of names
         # self.names = self.names + currResponse
         # self.names = newList
         # return currResponse
+        return
     
     # This gets a list of URLs and gets the longest
     # List of names of each and puts them in the names attribute
@@ -125,8 +126,9 @@ class PepOpenAi:
                 if ans == 'Yes':
                     newNames.append(name)
                 instances = instances + 1
-            except:
+            except Exception as e:
                 print("Unable to do request for "+name)
+                self.logger.error('Error in request '+str(e))
                 # Print reason why request did not work
                 pass
         self.names = newNames
@@ -135,7 +137,7 @@ class PepOpenAi:
 
     # Once you have the names covered, you should be able
     # to get the needed data 
-    async def getNamesData(self, loopWeight=1):
+    def getNamesData(self, loopWeight=1):
         dataPrompt = "Get the Name, Date of Birth, Country, Current Position of the following people and put in a semicolon delimited CSV format: "
         currList = self.names
         # Run through the list and get the data
@@ -144,7 +146,7 @@ class PepOpenAi:
             # Response from ai compromises when too many entries
             # at a time
             currAdd = currList[:loopWeight]
-            dataQuery = await openai.Completion.create(
+            dataQuery = openai.Completion.create(
                 model="text-davinci-002",
                 # prompt= infoPrompt_1+listNames,
                 prompt= dataPrompt+str(currAdd),
@@ -161,13 +163,15 @@ class PepOpenAi:
             # be put as a CSV
             while dataText[0] == '\n':
                 dataText = dataText[1:]
-            dataText = re.sub("; ", ";", dataText)
-            dataText = re.sub(r'\n+', '\n', dataText)
+            dataText.strip('/n')
+            dataText.strip()
             print(dataText)
 
             # Now append string to data attribute
             self.data = self.data + dataText + '\n'
             currList = currList[loopWeight:]
+            sleep(15)
+        return
     
     def savePepCsv(self, path):
         with open(path, 'w') as f:
@@ -177,4 +181,5 @@ class PepOpenAi:
             # Now put each row as a list into the csv
             for item in dataList:
                 writer.writerow(item.split(";"))
+        return
     

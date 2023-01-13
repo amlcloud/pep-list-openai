@@ -5,7 +5,7 @@ testUrl = "https://www.airforce.gov.au/about-us/"
 # First we test if it does run through and gives a list of names
 # CONCLUSION: it does, but needs more iterations for higher precision
 testPep = PepOpenAi()
-testPep.getLongestNamesList(testUrl, 30)
+testPep.getLongestNamesList(testUrl, 5)
 print(testPep.names)
 
 # EXTRA STEP: Filter the list of names to make sure they really are just
@@ -26,4 +26,4 @@ print(testPep.data)
 
 # Then save the csv file
 # Change path name to fit your pc
-testPep.savePepCsv("C:/Users/kilik/Desktop/AML/pep-list-openai")
+testPep.savePepCsv("C:/Users/kilik/Desktop/AML/pep-list-openai/test.csv")
