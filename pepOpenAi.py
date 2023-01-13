@@ -121,12 +121,13 @@ class PepOpenAi:
                 )
                 ans = namesResponse['choices'][0]['text'].strip('/n')
                 ans = ans.strip()
-                print(ans)
+                print("Is " + name + " a PEP? Answer: "+ans)
                 if ans == 'Yes':
                     newNames.append(name)
                 instances = instances + 1
             except:
                 print("Unable to do request for "+name)
+                # Print reason why request did not work
                 pass
         self.names = newNames
         print("Number of Instances: "+str(instances))
@@ -134,7 +135,7 @@ class PepOpenAi:
 
     # Once you have the names covered, you should be able
     # to get the needed data 
-    def getNamesData(self, loopWeight=1):
+    async def getNamesData(self, loopWeight=1):
         dataPrompt = "Get the Name, Date of Birth, Country, Current Position of the following people and put in a semicolon delimited CSV format: "
         currList = self.names
         # Run through the list and get the data
@@ -143,7 +144,7 @@ class PepOpenAi:
             # Response from ai compromises when too many entries
             # at a time
             currAdd = currList[:loopWeight]
-            dataQuery = openai.Completion.create(
+            dataQuery = await openai.Completion.create(
                 model="text-davinci-002",
                 # prompt= infoPrompt_1+listNames,
                 prompt= dataPrompt+str(currAdd),

@@ -1,6 +1,6 @@
 from pepOpenAi import PepOpenAi
 
-testUrl = "https://www.airforce.gov.au/about-us/leadership/"
+testUrl = "https://www.airforce.gov.au/about-us/"
 
 # First we test if it does run through and gives a list of names
 # CONCLUSION: it does, but needs more iterations for higher precision
