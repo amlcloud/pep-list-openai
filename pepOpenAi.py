@@ -161,8 +161,6 @@ class PepOpenAi:
 
             # Have to adjust the the string so that it can
             # be put as a CSV
-            while dataText[0] == '\n':
-                dataText = dataText[1:]
             dataText.strip('/n')
             dataText.strip()
             print(dataText)
