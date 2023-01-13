@@ -3,8 +3,11 @@
 import openai
 import csv
 import re
+import nltk
+from nltk import ne_chunk, pos_tag, word_tokenize
+from nltk.tree import Tree
 
-openai.api_key = "sk-Hzh7Acu2VFQWZp0FWpcnIPzkHIuii0e9n2am7PHU"
+openai.api_key = "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"
 
 class PepOpenAi:
 
@@ -52,25 +55,82 @@ class PepOpenAi:
     # Just uses getNames() to return the longest possible list
     # created from the query
     def getLongestNamesList(self, url, iterations=50):
-        maxLen = -1
-        returnText = ""
+        # maxLen = -1
+        # newList = []
+        # returnText = ""
         for i in range(iterations):
             currResponse = self.getNames(url)
+            # print("CurrResponse:" + str(currResponse))
+            for item in currResponse:
+                # print("Item: "+item)
+                if not item in self.names:
+                    self.names.append(item)
+            """
             if len(currResponse) > maxLen:
                 maxLen = len(currResponse)
                 returnText = currResponse
-
+            """
         # Don't know if I need this yet
         # RIGHT NOW: Likely we only start adding names
         # to the class when we are getting longest list of names
-        self.names = self.names + currResponse
-        return currResponse
+        # self.names = self.names + currResponse
+        # self.names = newList
+        # return currResponse
     
     # This gets a list of URLs and gets the longest
     # List of names of each and puts them in the names attribute
     def getUrlNames(self, urlList, iterations=50):
         for url in urlList:
             self.getLongestNamesList(url, iterations)
+        return
+
+    # Possible function to filter out only the names in
+    # the text
+    def filterNames(self):
+        newNames = []
+        for name in self.names:
+            name = name + " is a person."
+            # More details of this method on: https://unbiased-coder.com/extract-names-python-nltk/
+            nltk_results = ne_chunk(pos_tag(word_tokenize(name)))
+            for item in nltk_results:
+                if type(item) == Tree:
+                    new = ''
+                    for nltk_result_leaf in item.leaves():
+                        new += nltk_result_leaf[0] + ' '
+                    newNames.append(new.strip())
+                    # print ('Type: ', nltk_results.label(), 'Name: ', new)
+        self.names = [item for item in newNames if ' ' in item]
+        self.names = list(set(self.names))
+        return
+    
+    # Possible function to test if name really is a PEP
+    def verifyNames(self):
+        instances = 0
+        newNames = []
+        textPrompt = " a Politically Exposed Person? Answer with 'Yes' or 'No'."
+        for name in self.names:
+            try:
+                namesResponse = openai.Completion.create(
+                    model="text-davinci-002",
+                    prompt= "Is "+name+textPrompt,
+                    temperature=0.7,
+                    max_tokens=700,
+                    top_p=1.0,
+                    frequency_penalty=0.0,
+                    presence_penalty=0.0
+                )
+                ans = namesResponse['choices'][0]['text'].strip('/n')
+                ans = ans.strip()
+                print(ans)
+                if ans == 'Yes':
+                    newNames.append(name)
+                instances = instances + 1
+            except:
+                print("Unable to do request for "+name)
+                pass
+        self.names = newNames
+        print("Number of Instances: "+str(instances))
+        return
 
     # Once you have the names covered, you should be able
     # to get the needed data 
@@ -102,6 +162,7 @@ class PepOpenAi:
                 dataText = dataText[1:]
             dataText = re.sub("; ", ";", dataText)
             dataText = re.sub(r'\n+', '\n', dataText)
+            print(dataText)
 
             # Now append string to data attribute
             self.data = self.data + dataText + '\n'
