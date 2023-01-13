@@ -1,6 +1,7 @@
 # Need the following imports
 
 import openai
+import config
 import csv
 import re
 import nltk
@@ -8,8 +9,6 @@ from nltk import ne_chunk, pos_tag, word_tokenize
 from nltk.tree import Tree
 from time import sleep
 import logging
-
-openai.api_key = "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"
 
 class PepOpenAi:
 
