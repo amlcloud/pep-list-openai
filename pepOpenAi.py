@@ -24,18 +24,8 @@ class PepOpenAi:
         textPrompt = "Create a CSV of the given names (wihtout their position) of Politically Exposed Persons (PEPs) in this URL in the format Index, Name: "
         
         try:
-            namesResponse = openai.Completion.create(
-                model="text-davinci-002",
-                prompt= textPrompt + url,
-                temperature=0.7,
-                max_tokens=700,
-                top_p=1.0,
-                frequency_penalty=0.0,
-                presence_penalty=0.0
-            )
-
             # Extract the names 
-            namesQuery = namesResponse['choices'][0]['text']
+            namesQuery = self.makeGPTQuery(textPrompt+url)
         
             # Need to format the csv file so that everything looks clean
             STARTING_CHAR = '1'
@@ -66,9 +56,14 @@ class PepOpenAi:
             # print("CurrResponse:" + str(currResponse))
             for item in currResponse:
                 # print("Item: "+item)
+                # item = item.strip(',').upper()
+                item = item.strip(',')
+                item = item.strip(' ')
+                item = item.strip("\n")
                 if not item in self.names:
                     self.names.append(item)
             print("Current Iteration: "+str(i))
+            print(self.names)
         # Don't know if I need this yet
         # RIGHT NOW: Likely we only start adding names
         # to the class when we are getting longest list of names
@@ -88,6 +83,9 @@ class PepOpenAi:
     # the text
     def filterNames(self):
         newNames = []
+        self.names = [item for item in self.names if ' ' in item]
+        self.names = list(set(self.names))
+        print("NEW NAMES: "+str(self.names))
         for name in self.names:
             name = name + " is a person."
             # More details of this method on: https://unbiased-coder.com/extract-names-python-nltk/
@@ -98,9 +96,9 @@ class PepOpenAi:
                     for nltk_result_leaf in item.leaves():
                         new += nltk_result_leaf[0] + ' '
                     newNames.append(new.strip())
-                    # print ('Type: ', nltk_results.label(), 'Name: ', new)
-        self.names = [item for item in newNames if ' ' in item]
-        self.names = list(set(self.names))
+                    print ('Type: ', nltk_results.label(), 'Name: ', new)
+            sleep(3)
+        self.names = newNames
         return
     
     # Possible function to test if name really is a PEP
@@ -110,16 +108,7 @@ class PepOpenAi:
         textPrompt = " a Politically Exposed Person? Answer with 'Yes' or 'No'."
         for name in self.names:
             try:
-                namesResponse = openai.Completion.create(
-                    model="text-davinci-002",
-                    prompt= "Is "+name+textPrompt,
-                    temperature=0.7,
-                    max_tokens=700,
-                    top_p=1.0,
-                    frequency_penalty=0.0,
-                    presence_penalty=0.0
-                )
-                ans = namesResponse['choices'][0]['text'].strip('/n')
+                ans = self.makeGPTQuery("Is "+name+textPrompt).strip('\n')
                 ans = ans.strip()
                 print("Is " + name + " a PEP? Answer: "+ans)
                 if ans == 'Yes':
@@ -130,6 +119,7 @@ class PepOpenAi:
                 self.logger.error('Error in request '+str(e))
                 # Print reason why request did not work
                 pass
+            sleep(3)
         self.names = newNames
         print("Number of Instances: "+str(instances))
         return
@@ -155,13 +145,11 @@ class PepOpenAi:
                 frequency_penalty=0.0,
                 presence_penalty=0.0
             )
-
-            dataText = dataQuery['choices'][0]['text']
-
+            
             # Have to adjust the the string so that it can
             # be put as a CSV
-            dataText.strip('/n')
-            dataText.strip()
+            dataText = self.makeGPTQuery(dataPrompt+str(currAdd)).strip('\n')
+            dataText = dataText.strip()
             print(dataText)
 
             # Now append string to data attribute
@@ -169,6 +157,28 @@ class PepOpenAi:
             currList = currList[loopWeight:]
             sleep(15)
         return
+
+    # Helper function to make openai queries
+    def makeGPTQuery(self, currPrompt):
+        try:
+            query = openai.Completion.create(
+                model="text-davinci-002",
+                prompt= currPrompt,
+                temperature=0.7,
+                max_tokens=700,
+                top_p=1.0,
+                frequency_penalty=0.0,
+                presence_penalty=0.0
+            )
+
+            currResponse = query['choices'][0]['text']
+            query = query.strip('\n')
+            query = query.strip() 
+            return query
+
+        except Exception as e:
+            self.logger.error("Query could not be processed because: "+str(e))
+            return ""
     
     def savePepCsv(self, path):
         with open(path, 'w') as f:

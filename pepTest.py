@@ -5,7 +5,7 @@ testUrl = "https://www.airforce.gov.au/about-us/"
 # First we test if it does run through and gives a list of names
 # CONCLUSION: it does, but needs more iterations for higher precision
 testPep = PepOpenAi()
-testPep.getLongestNamesList(testUrl, 5)
+testPep.getLongestNamesList(testUrl, 3)
 print(testPep.names)
 
 # EXTRA STEP: Filter the list of names to make sure they really are just
@@ -13,6 +13,8 @@ print(testPep.names)
 testPep.filterNames()
 # print(testPep.names)
 print("Length: "+str(len(testPep.names)))
+print("FILTERED NAMES")
+print(testPep.names)
 
 # EXTRA STEP: Verify if each name is indeed a PEP or not, some
 # names generated are fake
