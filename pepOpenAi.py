@@ -9,6 +9,7 @@ from nltk import ne_chunk, pos_tag, word_tokenize
 from nltk.tree import Tree
 from time import sleep
 import logging
+from country_list import countries_for_language
 
 class PepOpenAi:
 
@@ -17,6 +18,7 @@ class PepOpenAi:
         self.names = []
         self.data = "Name;Date of Birth;Country;Current Position\n"
         self.logger = logging.getLogger('ftpuploader')
+        self.countries = [item[1] for item in countries_for_language('en')]
         return
 
     def getNames(self, url):
@@ -83,8 +85,6 @@ class PepOpenAi:
     # the text
     def filterNames(self):
         newNames = []
-        self.names = [item for item in self.names if ' ' in item]
-        self.names = list(set(self.names))
         print("NEW NAMES: "+str(self.names))
         for name in self.names:
             name = name + " is a person."
@@ -98,7 +98,8 @@ class PepOpenAi:
                     newNames.append(new.strip())
                     print ('Type: ', nltk_results.label(), 'Name: ', new)
             sleep(3)
-        self.names = newNames
+        self.names = [item for item in self.names if ' ' in item]
+        self.names = list(set(self.names))
         return
     
     # Possible function to test if name really is a PEP
@@ -121,6 +122,8 @@ class PepOpenAi:
                 pass
             sleep(3)
         self.names = newNames
+        self.names = [item for item in self.names if ' ' in item]
+        self.names = list(set(self.names))
         print("Number of Instances: "+str(instances))
         return
 
@@ -128,32 +131,59 @@ class PepOpenAi:
     # to get the needed data 
     def getNamesData(self, loopWeight=1):
         dataPrompt = "Get the Name, Date of Birth, Country, Current Position of the following people and put in a semicolon delimited CSV format: "
+        dobPrompt = "Get the Date of Birth of "
+        dobPrompt2 = " and put in the format mm-dd-yyyy"
+        posPrompt = "Get the current political position of "
+        countryPrompt = "Get the country of origin of "
+        # posPrompt2
         currList = self.names
         # Run through the list and get the data
         while currList:
             # Current round of additions,
             # Response from ai compromises when too many entries
             # at a time
-            currAdd = currList[:loopWeight]
-            dataQuery = openai.Completion.create(
-                model="text-davinci-002",
-                # prompt= infoPrompt_1+listNames,
-                prompt= dataPrompt+str(currAdd),
-                temperature=0.7,
-                max_tokens=700,
-                top_p=1.0,
-                frequency_penalty=0.0,
-                presence_penalty=0.0
-            )
+            # currAdd = currList[:loopWeight]
+            currAdd = currList[0]
+
+            # Query for the desired information individually
+            birth = self.makeGPTQuery(dobPrompt+currAdd+dobPrompt2)
+            try:
+                birth = re.findall(r'\d\d-\d\d-\d\d\d\d', birth)[0]
+            except:
+                birth = "Unknown"
+            print("Birth: "+str(birth))
             
-            # Have to adjust the the string so that it can
-            # be put as a CSV
-            dataText = self.makeGPTQuery(dataPrompt+str(currAdd)).strip('\n')
-            dataText = dataText.strip()
+            # Still don't know how to extract position properly from
+            # chatGPT response
+            try:
+                position = self.makeGPTQuery(posPrompt+currAdd+".")
+                print(position)
+                position = position.split(" is ")
+                print(position)
+                position = position[len(position)-1].strip()
+            except:
+                position = "Unknown"
+            
+            # Use regex to extract the actual country from the code
+            country = self.makeGPTQuery(countryPrompt+currAdd+".")
+            print("Country Query Response: "+str(country))
+            try:
+                country = re.findall(r"(?=("+'|'.join(self.countries)+r"))", country)[0][0]
+            except:
+                country = "Unknown"
+            print("Country: "+str(country))
+
+            # Put them together in the desired csv format
+            dataText = currAdd + ";" + birth + ";" + country + ";" + position + "\n"
             print(dataText)
+            self.data = self.data + dataText
+
+            # dataText = self.makeGPTQuery(dataPrompt+str(currAdd)).strip('\n')
+            # dataText = dataText.strip()
+            # print(dataText)
 
             # Now append string to data attribute
-            self.data = self.data + dataText + '\n'
+            # self.data = self.data + dataText + '\n'
             currList = currList[loopWeight:]
             sleep(15)
         return
@@ -172,9 +202,9 @@ class PepOpenAi:
             )
 
             currResponse = query['choices'][0]['text']
-            query = query.strip('\n')
-            query = query.strip() 
-            return query
+            currResponse = currResponse.strip('\n')
+            currResponse = currResponse.strip() 
+            return currResponse
 
         except Exception as e:
             self.logger.error("Query could not be processed because: "+str(e))
