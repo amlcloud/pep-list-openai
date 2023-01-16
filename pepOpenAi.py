@@ -102,22 +102,29 @@ class PepOpenAi:
         
         for name in self.names:
             try:
+                """
                 newFirst = ""
                 for first in first_names:
-                    print("Curr First Name: "+first)
+                    # print("Curr First Name: "+first)
                     if first in name and len(first) > len(newFirst):
                         newFirst = first
                         break
                 
                 newLast = ""
                 for last in last_names:
-                    print("Curr Last Name: "+last)
+                    # print("Curr Last Name: "+last)
                     if last in name and len(last) > len(newLast):
                         newLast = last
                         break
+                """
+                
+                first_names = re.sub(r'\-', r'', first_names)
+                last_names = re.sub(r'\-', r'', last_names)
 
-                # newFirst = re.findall(r"(?=("+'|'.join(first_names)+r"))", name)[0][0]
-                # newLast = re.findall(r"(?=("+'|'.join(last_names)+r"))", name)[0][0]
+                newFirst = re.findall(r"(?=("+'|'.join(first_names)+r"))", name)[0][0]
+                print("New First Name: "+newFirst)
+                newLast = re.findall(r"(?=("+'|'.join(last_names)+r"))", name)[0][0]
+                print("New Last Name: "+newLast)
 
                 currAdd = newFirst + ' ' + newLast
                 print("Filtered Name: "+currAdd)

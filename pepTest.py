@@ -11,7 +11,7 @@ print(testPep.names)
 
 # EXTRA STEP: Filter the list of names to make sure they really are just
 # A list of names
-# testPep.filterNames()
+testPep.filterNames()
 # print(testPep.names)
 # print("Length: "+str(len(testPep.names)))
 # print("FILTERED NAMES")

@@ -1,3 +1,4 @@
 openai==0.26.1
 nltk==3.8.1
 country_list==1.0.0
+names_dataset==3.1.0
