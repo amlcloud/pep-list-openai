@@ -10,6 +10,7 @@ from nltk.tree import Tree
 from time import sleep
 import logging
 from country_list import countries_for_language
+from names_dataset import NameDataset
 
 class PepOpenAi:
 
@@ -19,6 +20,7 @@ class PepOpenAi:
         self.data = "Name;Date of Birth;Country;Current Position\n"
         self.logger = logging.getLogger('ftpuploader')
         self.countries = [item[1] for item in countries_for_language('en')]
+        self.nd = NameDataset()
         return
 
     def getNames(self, url):
@@ -85,21 +87,48 @@ class PepOpenAi:
     # the text
     def filterNames(self):
         newNames = []
-        print("NEW NAMES: "+str(self.names))
+        # ONE METHOD TRIED: https://unbiased-coder.com/extract-names-python-nltk/
+        # --> DID NOT WORK
+        # Make the list of names that you want to regex
+        codes = [item.alpha_2 for item in self.nd.get_country_codes()]
+        first_names = []
+        last_names = []
+
+        for country_code in codes:
+            first_names = first_names + self.nd.get_top_names(1000000, True, country_code)[country_code]['M'] + \
+                self.nd.get_top_names(1000000, True, country_code)[country_code]['F']
+            last_names = last_names + self.nd.get_top_names(1000000, False, country_code)[country_code]
+            
+        
         for name in self.names:
-            name = name + " is a person."
-            # More details of this method on: https://unbiased-coder.com/extract-names-python-nltk/
-            nltk_results = ne_chunk(pos_tag(word_tokenize(name)))
-            for item in nltk_results:
-                if type(item) == Tree:
-                    new = ''
-                    for nltk_result_leaf in item.leaves():
-                        new += nltk_result_leaf[0] + ' '
-                    newNames.append(new.strip())
-                    print ('Type: ', nltk_results.label(), 'Name: ', new)
+            try:
+                newFirst = ""
+                for first in first_names:
+                    print("Curr First Name: "+first)
+                    if first in name and len(first) > len(newFirst):
+                        newFirst = first
+                        break
+                
+                newLast = ""
+                for last in last_names:
+                    print("Curr Last Name: "+last)
+                    if last in name and len(last) > len(newLast):
+                        newLast = last
+                        break
+
+                # newFirst = re.findall(r"(?=("+'|'.join(first_names)+r"))", name)[0][0]
+                # newLast = re.findall(r"(?=("+'|'.join(last_names)+r"))", name)[0][0]
+
+                currAdd = newFirst + ' ' + newLast
+                print("Filtered Name: "+currAdd)
+                newNames.append(currAdd)
+            except Exception as e:
+                self.logger.error("Failed to make name for "+name+" due to "+str(e))
+                pass
             sleep(3)
-        self.names = [item for item in self.names if ' ' in item]
-        self.names = list(set(self.names))
+
+        self.names = list(set(newNames))
+        # self.names = list(set(self.names))
         return
     
     # Possible function to test if name really is a PEP
@@ -137,6 +166,7 @@ class PepOpenAi:
         countryPrompt = "Get the country of origin of "
         # posPrompt2
         currList = self.names
+
         # Run through the list and get the data
         while currList:
             # Current round of additions,
@@ -145,9 +175,18 @@ class PepOpenAi:
             # currAdd = currList[:loopWeight]
             currAdd = currList[0]
 
-            # Query for the desired information individually
-            birth = self.makeGPTQuery(dobPrompt+currAdd+dobPrompt2)
+            # Use regex to extract the actual country from the code
+            country = self.makeGPTQuery(countryPrompt+currAdd+".")
+            print("Country Query Response: "+str(country))
             try:
+                country = re.findall(r"(?=("+'|'.join(self.countries)+r"))", country)[0][0]
+            except:
+                country = "Unknown"
+            print("Country: "+str(country))
+
+            # Query for the desired information individually
+            try:
+                birth = self.makeGPTQuery(dobPrompt+currAdd+dobPrompt2)
                 birth = re.findall(r'\d\d-\d\d-\d\d\d\d', birth)[0]
             except:
                 birth = "Unknown"
@@ -164,15 +203,6 @@ class PepOpenAi:
             except:
                 position = "Unknown"
             
-            # Use regex to extract the actual country from the code
-            country = self.makeGPTQuery(countryPrompt+currAdd+".")
-            print("Country Query Response: "+str(country))
-            try:
-                country = re.findall(r"(?=("+'|'.join(self.countries)+r"))", country)[0][0]
-            except:
-                country = "Unknown"
-            print("Country: "+str(country))
-
             # Put them together in the desired csv format
             dataText = currAdd + ";" + birth + ";" + country + ";" + position + "\n"
             print(dataText)

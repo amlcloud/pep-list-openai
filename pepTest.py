@@ -1,4 +1,5 @@
 from pepOpenAi import PepOpenAi
+import config
 
 testUrl = "https://www.airforce.gov.au/about-us/"
 
@@ -10,11 +11,11 @@ print(testPep.names)
 
 # EXTRA STEP: Filter the list of names to make sure they really are just
 # A list of names
-testPep.filterNames()
+# testPep.filterNames()
 # print(testPep.names)
-print("Length: "+str(len(testPep.names)))
-print("FILTERED NAMES")
-print(testPep.names)
+# print("Length: "+str(len(testPep.names)))
+# print("FILTERED NAMES")
+# print(testPep.names)
 
 # EXTRA STEP: Verify if each name is indeed a PEP or not, some
 # names generated are fake
@@ -28,4 +29,4 @@ print(testPep.data)
 
 # Then save the csv file
 # Change path name to fit your pc
-testPep.savePepCsv("C:/Users/kilik/Desktop/AML/pep-list-openai/test.csv")
+testPep.savePepCsv(path)
