@@ -22,6 +22,8 @@ To setup this project, install the files in the txt files using npm/cmd:
 $ pip install -r requirements.txt
 ```
 
-Also run the nltk_download.py file to install additional packages
+Also run the nltk_download.py file to install additional packages.
 
-In the config.py file, make sure to change the api_key and path variables to your local ones
+In the config.py file, make sure to change the api_key and path variables to your local ones.
+
+To run the project, run the pepTest.py file. All the data will be stored in the test.csv file.
