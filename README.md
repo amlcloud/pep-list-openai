@@ -16,8 +16,10 @@ Project is created with:
 * country_list version: 1.0.0
 	
 ## Setup
-To run this project, install it locally using npm/cmd:
+To setup this project, install the files in the txt files using npm/cmd:
 
 ```
 $ pip install -r requirements.txt
 ```
+
+Also run the nltk_download.py file to install additional packages
