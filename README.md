@@ -23,3 +23,5 @@ $ pip install -r requirements.txt
 ```
 
 Also run the nltk_download.py file to install additional packages
+
+In the config.py file, make sure to change the api_key and path variables to your local ones
