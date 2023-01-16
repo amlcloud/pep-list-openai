@@ -1,5 +1,5 @@
 from pepOpenAi import PepOpenAi
-import config
+from config import path
 
 testUrl = "https://www.airforce.gov.au/about-us/"
 
