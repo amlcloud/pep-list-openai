@@ -15,12 +15,13 @@ from names_dataset import NameDataset
 class PepOpenAi:
 
     # TODO: Add variables that you might need
-    def __init__(self):
+    def __init__(self, filtered_countries=None):
         self.names = []
         self.data = "Name;Date of Birth;Country;Current Position\n"
         self.logger = logging.getLogger('ftpuploader')
         self.countries = [item[1] for item in countries_for_language('en')]
         self.nd = NameDataset()
+        self.nameCountries = filtered_countries
         return
 
     def getNames(self, url):
@@ -90,7 +91,14 @@ class PepOpenAi:
         # ONE METHOD TRIED: https://unbiased-coder.com/extract-names-python-nltk/
         # --> DID NOT WORK
         # Make the list of names that you want to regex
-        codes = [item.alpha_2 for item in self.nd.get_country_codes()]
+
+        # Here we check if we want to filter the names to anything,
+        # otherwise we really don't know and look at every country for a name match
+        if self.nameCountries:
+            codes = self.nameCountries
+        else:
+            codes = [item.alpha_2 for item in self.nd.get_country_codes()]
+
         first_names = []
         last_names = []
 
@@ -102,37 +110,38 @@ class PepOpenAi:
         
         for name in self.names:
             try:
-                """
-                newFirst = ""
-                for first in first_names:
-                    # print("Curr First Name: "+first)
-                    if first in name and len(first) > len(newFirst):
-                        newFirst = first
-                        break
-                
-                newLast = ""
-                for last in last_names:
-                    # print("Curr Last Name: "+last)
-                    if last in name and len(last) > len(newLast):
-                        newLast = last
-                        break
-                """
-                
-                first_names = re.sub(r'\-', r'', first_names)
-                last_names = re.sub(r'\-', r'', last_names)
+                def makeLastName(index, possible_name, text):
+                    try:
+                        currLast = text.split()[index+1]
+                        # if currLast in last_names:
+                        if currLast in last_names or currLast in first_names:
+                            return possible_name+' '+currLast
+                        else:
+                            return None
+                    except:
+                        return None
 
-                newFirst = re.findall(r"(?=("+'|'.join(first_names)+r"))", name)[0][0]
-                print("New First Name: "+newFirst)
-                newLast = re.findall(r"(?=("+'|'.join(last_names)+r"))", name)[0][0]
-                print("New Last Name: "+newLast)
+                allNames = []
+                currName = ""
+                addName = ""
+                for i in range(len(name.split())):
+                    poss_name = name.split()[i]
+                    if poss_name in first_names or poss_name in last_names:
+                        print("Currently Testing this Name: "+poss_name)
+                        currName = makeLastName(i, poss_name, name)
+                if currName != None:
+                    allNames.append(currName)
 
-                currAdd = newFirst + ' ' + newLast
-                print("Filtered Name: "+currAdd)
-                newNames.append(currAdd)
+                for name in allNames:
+                    if len(name) > len(addName):
+                        print("Current New Name: "+name)
+                        addName = name
+                
+                newNames.append(addName)
             except Exception as e:
                 self.logger.error("Failed to make name for "+name+" due to "+str(e))
                 pass
-            sleep(3)
+            # sleep(3)
 
         self.names = list(set(newNames))
         # self.names = list(set(self.names))
